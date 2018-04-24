@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>ASKA - a Crypto-currencies Analyst and Hedge Fund</title>
+		<link id="favicon" rel="shortcut icon" href="favicon.png"/>
+		<link rel="icon" type="image/png" href="favicon.png" />
+		<link rel="stylesheet" type="text/css" href="assets/css/style.css" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+		<script type="text/javascript" src="assets/js/moment.js"></script>
+		<script type="text/javascript" src="assets/js/chart.js"></script>
+		<link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.1/dist/leaflet.css"
+		integrity="sha512-Rksm5RenBEKSKFjgI3a41vrjkw4EVPlJ3+OiI65vTjIdo9brlAacEuKOiQ5OFh7cOI1bkDwLqdLw3Zg0cRJAAQ=="
+		crossorigin=""/>
+		<script src="https://unpkg.com/leaflet@1.3.1/dist/leaflet.js"
+		integrity="sha512-/Nsx9X4HebavoBvEBuyp3I7od5tA0UzAxs+j83KgC8PU0kgB4XiK4Lfe4y4cgBtaRJQEIFCW+oC506aPT2L1zw=="
+		crossorigin=""></script>
+		<script src="assets/js/leaflet-providers.js"></script>
+		<script src="http://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+		<script>
+			document.addEventListener('DOMContentLoaded', function() {
+	particlesJS("background", {
+		        "particles": {
+		          "number": {
+		            "value": 120,
+		            "density": {
+		              "enable": true,
+		              "value_area": 900
+		            }
+		          },
+		          "color": {
+		            "value": "#fff"
+		          },
+		          "shape": {
+		            "type": "circle",
+		            "stroke": {
+		              "width": 0,
+		              "color": "#000000"
+		            },
+		            "polygon": {
+		              "nb_sides": 5
+		            },
+		            "image": {
+		              "src": "img/github.svg",
+		              "width": 100,
+		              "height": 100
+		            }
+		          },
+		          "opacity": {
+		            "value": 0.01,
+		            "random": false,
+		            "anim": {
+		              "enable": false,
+		              "speed": 1,
+		              "opacity_min": 0.1,
+		              "sync": false
+		            }
+		          },
+		          "size": {
+		            "value": 2,
+		            "random": true,
+		            "anim": {
+		              "enable": false,
+		              "speed": 40,
+		              "size_min": 0.1,
+		              "sync": false
+		            }
+		          },
+		          "line_linked": {
+		            "enable": true,
+		            "distance": 150,
+		            "color": "#ffffff",
+		            "opacity": 0.3,
+		            "width": 1
+		          },
+		          "move": {
+		            "enable": true,
+		            "speed": 5,
+		            "direction": "none",
+		            "random": false,
+		            "straight": false,
+		            "out_mode": "out",
+		            "bounce": false,
+		            "attract": {
+		              "enable": false,
+		              "rotateX": 600,
+		              "rotateY": 1200
+		            }
+		          }
+		        },
+		        "interactivity": {
+		          "detect_on": "canvas",
+		          "events": {
+		            "onhover": {
+		              "enable": false,
+		              "mode": "grab"
+		            },
+		            "onclick": {
+		              "enable": true,
+		              "mode": "push"
+		            },
+		            "resize": true
+		          },
+		          "modes": {
+		            "grab": {
+		              "distance": 140,
+		              "line_linked": {
+		                "opacity": 1
+		              }
+		            },
+		            "bubble": {
+		              "distance": 400,
+		              "size": 40,
+		              "duration": 2,
+		              "opacity": 8,
+		              "speed": 3
+		            },
+		            "repulse": {
+		              "distance": 200,
+		              "duration": 0.4
+		            },
+		            "push": {
+		              "particles_nb": 4
+		            },
+		            "remove": {
+		              "particles_nb": 2
+		            }
+		          }
+		        },
+		        "retina_detect": true
+		      });
+}, false);
+			function loadJSON(callback) {   
+				var xobj = new XMLHttpRequest();
+					xobj.overrideMimeType("application/json");
+				xobj.open('GET', 'https://api.coindesk.com/v1/bpi/historical/close.json', true);
+				xobj.onreadystatechange = function () {
+					if (xobj.readyState == 4 && xobj.status == "200") {
+						callback(xobj.responseText);
+					}
+				};
+				xobj.send(null);  
+			}
+
+			function loadVolume(callback) {   
+				var xobj = new XMLHttpRequest();
+					xobj.overrideMimeType("application/json");
+				xobj.open('GET', 'https://api.coinmarketcap.com/v1/ticker/', true);
+				xobj.onreadystatechange = function () {
+					if (xobj.readyState == 4 && xobj.status == "200") {
+						callback(xobj.responseText);
+					}
+				};
+				xobj.send(null);  
+			}
+			
+
+			function init() {
+				
+				loadVolume(function(response) { // loadPrice
+					var data = JSON.parse(response);
+					var val = data['0'];
+					
+					var cap = document.getElementById('cap');
+					var volume = document.getElementById('volume');
+					var supply = document.getElementById('supply');
+
+					var currentValue = document.getElementById('currentValue');
+					var hourvariation = document.getElementById('hourvariation');
+					var dayvariation = document.getElementById('dayvariation');
+					var weekvariation = document.getElementById('weekvariation');
+
+					var btcValue = document.getElementById('btc-value');
+					var ethValue = document.getElementById('eth-value');
+
+					cap.innerText = '$'+numberWithSpaces(val['market_cap_usd'])+'.00';
+					volume.innerText = '$'+numberWithSpaces(val['24h_volume_usd'])+'0';
+					supply.innerText = numberWithSpaces(Math.round(val['total_supply']));
+
+					currentValue.innerText = '$'+numberWithSpaces(val['price_usd']);
+					hourvariation.innerHTML = '<span>'+numberWithSpaces(val['percent_change_1h'])+'%</span> (1 hour)';
+					dayvariation.innerHTML = '<span>'+numberWithSpaces(val['percent_change_24h'])+'%</span> (24 hours)';
+					weekvariation.innerHTML = '<span>'+numberWithSpaces(val['percent_change_7d'])+'%</span> (7 days)';
+
+					btcValue.innerText = '$'+numberWithSpaces(val['price_usd']);
+					ethValue.innerText = '$'+numberWithSpaces(Math.round(data['1']['price_usd']*100)/100);
+
+					if(val['percent_change_1h'] >=0) {
+						hourvariation.className = 'positive';
+					} else {
+						hourvariation.className = 'negative';
+					}
+
+					if(val['percent_change_24h'] >=0) {
+						dayvariation.className = 'positive';
+					} else {
+						dayvariation.className = 'negative';
+					}
+
+					if(val['percent_change_7d'] >=0) {
+						weekvariation.className = 'positive';
+					} else {
+						weekvariation.className = 'negative';
+					}
+					//document.getElementById('currentValue').innerText = '$'+val['bpi']['USD']['rate'].slice(0, -2);
+
+					currenciesArray(data);
+				});
+
+				function tableHead() {
+					var thead = document.createElement('thead');
+					var tr = document.createElement('tr');
+					var rank = document.createElement('th');
+					var name = document.createElement('th');
+					var price = document.createElement('th');
+					var oneHour = document.createElement('th');
+					var oneDay = document.createElement('th');
+					var oneWeek = document.createElement('th');
+					oneHour.className = 'table-right';
+					oneDay.className = 'table-right';
+					oneWeek.className = 'table-right';
+					rank.innerText = '#';
+					name.innerText = 'Currency';
+					price.innerText = 'Price';
+					oneHour.innerText = '1h';
+					oneDay.innerText = '24h';
+					oneWeek.innerText = '7d';
+					tr.appendChild(rank);
+					tr.appendChild(name);
+					tr.appendChild(price);
+					tr.appendChild(oneHour);
+					tr.appendChild(oneDay);
+					tr.appendChild(oneWeek);
+					thead.appendChild(tr);
+					return thead;
+				}
+
+				function currenciesArray(data) {
+					//
+					var table = document.createElement('table');
+						table.appendChild(tableHead());
+					var tableTwo = document.createElement('table');
+						tableTwo.appendChild(tableHead());
+					var tableThree = document.createElement('table');
+						tableThree.appendChild(tableHead());
+					var c = 0;
+					//var tbody = document.createElement('tbody');
+					for(var key in data) {
+						var tr = document.createElement('tr');
+
+						var td = {
+							'rank': document.createElement('td'),
+							'name': document.createElement('td'),
+							'price': document.createElement('td'),
+							'oneHour': document.createElement('td'),
+							'tfHours': document.createElement('td'),
+							'oneWeek': document.createElement('td'),
+						}
+						td['rank'].innerText = data[key]['rank'];
+						td['name'].innerText = data[key]['name'];
+						td['price'].innerText = '$'+numberWithSpaces(data[key]['price_usd']);
+						td['oneHour'].innerText = data[key]['percent_change_1h']+'%';
+						td['tfHours'].innerText = data[key]['percent_change_24h']+'%';
+						td['oneWeek'].innerText = data[key]['percent_change_7d']+'%';
+
+						if(data[key]['percent_change_1h'] >=0) {
+							td['oneHour'].className = 'positive-v';
+						} else {
+							td['oneHour'].className = 'negative-v';
+						}
+
+						if(data[key]['percent_change_24h'] >=0) {
+							td['tfHours'].className = 'positive-v';
+						} else {
+							td['tfHours'].className = 'negative-v';
+						}
+
+						if(data[key]['percent_change_7d'] >=0) {
+							td['oneWeek'].className = 'positive-v';
+						} else {
+							td['oneWeek'].className = 'negative-v';
+						}
+
+						tr.appendChild(td['rank']);
+						tr.appendChild(td['name']);
+						tr.appendChild(td['price']);
+						tr.appendChild(td['oneHour']);
+						tr.appendChild(td['tfHours']);
+						tr.appendChild(td['oneWeek']);
+
+
+
+						if(c <= 33) {
+							table.appendChild(tr);
+						} else if(c <= 66) {
+							tableTwo.appendChild(tr);
+						} else {
+							tableThree.appendChild(tr);
+						}
+						c++;
+					}
+					//table.appendChild(tbody);
+					document.getElementById('coin-values').appendChild(table);
+					document.getElementById('coin-values').appendChild(tableTwo);
+					document.getElementById('coin-values').appendChild(tableThree);
+				}
+
+				loadJSON(function(response) { // load graph data
+					loadData(JSON.parse(response));
+				});
+
+				initMap();
+			}
+			function initMap() {
+					var map = L.map('map').setView([22.2826283, 114.1556156], 13);
+				map.touchZoom.disable();
+				map.doubleClickZoom.disable();
+				map.scrollWheelZoom.disable();
+				map.boxZoom.disable();
+				map.keyboard.disable();
+				
+				//L.tileLayer.provider('Stamen.Watercolor').addTo(map);
+				//L.tileLayer.provider('Stamen.Terrain').addTo(map);
+				L.tileLayer.provider('OpenStreetMap.BlackAndWhite').addTo(map);
+				
+				L.marker([22.2826283, 114.1556156]).addTo(map)
+					.bindPopup('21/F Crawford House<br />70 Queen’s Road Central<br />Central<br />Hong Kong<br /><br />☎ (852) 2961 4143<br />📟 (852) 2961 4144<br />✉ <a href="mailto:contact@aska-fund.xyz">contact@aska-fund.xyz</a>')
+					.openPopup();
+
+			}
+			function loadData(data) {
+				//
+
+				var dates = [];
+				var values = [];
+				for(var key in data.bpi) {
+					dates.push(new Date(key));
+					values.push(data.bpi[key])
+				}
+
+				drawGraph(dates, values);
+			}
+
+			function numberWithSpaces(x) {
+				var parts = x.toString().split(".");
+				parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+				return parts.join(".");
+			}
+
+			function drawGraph(dates, values) {
+				var ctx = document.getElementById("chart").getContext('2d');
+				ctx.width = 800;
+				ctx.height = 400;
+
+				/*
+				ctx.width = 1200;
+				ctx.height = 600;
+				/**/
+				
+				/*
+				var gradientFill = ctx.createLinearGradient(0, 0, 0, 500);
+				gradientFill.addColorStop(0, "rgba(228,93,46, 0.1)");
+				gradientFill.addColorStop(1, "rgba(228,93,46, 0)");
+				*/
+				var gradientFill = ctx.createLinearGradient(0, 0, 0, 500);
+				gradientFill.addColorStop(0, "rgba(228,93,46, 0.05)");
+				gradientFill.addColorStop(1, "rgba(228,93,46, 0.025)");
+
+				//Chart.defaults.global.scaleLabel = "<%= Number(value).toFixed(2).replace('.', ',') + ' €'%>";
+
+				var myChart = new Chart(ctx, {
+					type: 'line',
+					data: {
+						//labels: ["Red", "Blue", "Yellow", "Green", "Purple", "Orange"],
+
+						labels: dates,
+						datasets: [{
+							label: '$',
+							//data: [12, 19, 3, 5, 2, 3],
+							data: values,
+							type: 'line',
+							//backgroundColor: 'rgba(228,93,46, 0.2)',
+							backgroundColor: gradientFill,
+							borderColor: 'rgba(228,93,46, 1)',
+							borderWidth: 3
+						}]
+					},
+					options: {
+						responsive: true,
+						maintainAspectRatio: true,
+
+						
+
+						scales: {
+							xAxes: [{
+								ticks: {
+									beginAtZero: false,
+									fontSize: 12,
+									stepSize: 0,
+									fontStyle: 'bold',
+									fontFamily: 'Open Sans',
+									fontColor: '#999',
+									/*
+									callback: function(value, index, values) {
+										return Math.round(value/1000)+'k        ';
+									},
+									*/
+									display: true,
+									maxTicksLimit: 10,
+									//source: 'labels',
+
+									padding: 20,
+									labelOffset: -60,
+								},
+
+
+								//distribution: 'series',
+								//source: 'auto',
+								//bounds: 'ticks',
+								stacked: true,
+
+								type: 'time',
+								time: {
+									displayFormats: {
+										'millisecond': 'MMM DD, YYYY',
+										'second': 'MMM DD, YYYY',
+										'minute': 'MMM DD, YYYY',
+										'hour': 'MMM DD, YYYY',
+										'day': 'MMM DD, YYYY',
+										'week': 'MMM DD, YYYY',
+										'month': 'MMM DD, YYYY',
+										'quarter': 'MMM DD, YYYY',
+										'year': 'MMM DD, YYYY',
+									},
+									unit: 'day',
+									unitStepSize: 5,
+									//unitStepSize: 1,
+								},
+								
+
+								gridLines: {
+									color: "rgba(255,255,255, 0)",
+									drawOnChartArea: true,
+									drawTicks: true,
+									drawBorder: false,
+									lineWidth: 2,
+									//borderDash: [0,1,2,3],
+									offsetGridLines: true,
+								}
+							}],
+							yAxes: [{
+								ticks: {
+									beginAtZero: false,
+									fontSize: 12,
+									stepSize: 1000,
+									fontStyle: 'bold',
+									fontFamily: 'Open Sans',
+									fontColor: '#999',
+									callback: function(value, index, values) {
+										return Math.round(value/1000)+'k        ';
+									},
+									display: true,
+								},
+								gridLines: {
+									borderDash: [10, 10],
+									color: "rgba(255,255,255, 0.1)",
+									//tickMarkLength: 50,
+									drawOnChartArea: true,
+									//drawTicks: false,
+									drawBorder: false,
+									offsetGridLines: false,
+									//zeroLineColor: "rgba(255,0,0,1)",
+									//zeroLineWidth: 100,
+									lineWidth: 1,
+									//borderDash: [0,1,2,3],
+								}
+							}],
+						},
+						legend: {
+							display: false,
+						},
+						elements: {
+							point: {
+								/**/
+								radius: 0,
+								hitRadius: 25,
+								/**/
+							},
+							line: {
+								//stepped: true,
+								tension: 0,
+							}
+						},
+
+						tooltips: {
+							intersect: true,
+							backgroundColor: "#272541", //#000000
+							bodyFontSize: 14,
+							bodyFontStyle: "bold",
+							bodyFontColor: '#fefefe',
+							bodyFontFamily: "'Open Sans', 'Helvetica', 'Arial', sans-serif",
+							headerFontColor: '#fefefe',
+							footerFontSize: 14,
+						}
+
+					}
+				});
+			}
+
+			function closeMenuEvent(a) {
+				a.addEventListener('click', function() {
+					document.getElementById('menu').checked = false;
+				}, false);
+			}
+
+			function logInOn() {
+				document.getElementById('login-on').checked = true;
+				document.getElementById('login-ticker').checked = true;
+			}
+
+			function signUpOn() {
+				document.getElementById('login-on').checked = true;
+				document.getElementById('signup-ticker').checked = true;
+			}
+
+			document.addEventListener('DOMContentLoaded', function() {
+				
+				var a = document.getElementById('menu-list').getElementsByTagName('a');
+				for(var i = 0, l = a.length; i < l; i++) {
+					closeMenuEvent(a[i]);
+				}
+
+				document.getElementById('login-on').checked = false;
+
+				document.getElementById('trading-check').checked = false;
+
+				document.getElementById('login-button').addEventListener('click', function() {
+					logInOn();
+				});
+				document.getElementById('subscribe-one').addEventListener('click', function() {
+					signUpOn();
+				});
+				document.getElementById('subscribe-two').addEventListener('click', function() {
+					signUpOn();
+				});
+
+				init();
+
+				
+				
+			}, false);
+
+		</script>
+		
+	</head>
+	<body>
+		<header>
+			<div id="header-container">
+				<a href="#" class="logo">Aska</a>
+				<input type="checkbox" id="menu" name="menu">
+				<label for="menu" id="menu-button"><div></div></label>
+				<nav id="menu-list">
+					<li><a href="#presentation">Home</a></li><!--
+					--><li><a href="#services">Services</a></li><!--
+					--><li><a href="#prices-grid">Pricing</a></li><!--
+					--><li><a href="#about">About Us</a></li><!--
+					--><li><a href="#contact">Contact</a></li><!--
+					<li><a href="#" class="nav-button grey">Sign Up</a></li><!--
+					--><li><a class="nav-button" id="login-button">Log In</a></li>
+				</nav>
+			</div>
+			<!--<hr />-->
+		</header>
+
+		<input type="radio" name="loginOn" class="login-control" id="login-on" />
+		<input type="radio" name="loginOn" class="login-control" id="login-off" checked />
+		<section id="login">
+			<input type="radio" value="login" name="login" class="tab-control" id="login-ticker" checked />
+			<input type="radio" value="signup" name="login" class="tab-control" id="signup-ticker" />
+			<div id="login-popup">
+				<div id="login-header">
+					<label for="login-ticker" id="login-label">Login</label>
+					<label for="signup-ticker" id="signup-label">Signup</label>
+				</div>
+				<div class="popup-tab" id="login-tab">
+					<label for="login-field" class="f-label">Login name or Email address</label>
+					<input type="text" id="login-field" name="login-field" value="" />
+
+					<label for="password-field" class="f-label">Password</label>
+					<input type="password" id="password-field" name="password-field" />
+
+					<div class="flexbox">
+						<input type="checkbox" name="rememberme" id="rememberme" />
+						<label for="rememberme" class="f-label">Stay logged in on this computer</label>
+					</div>
+
+					<div class="flexbox-r">
+						<input type="submit" value="Log In" class="form-button-v" />
+						<label class="form-button" for="login-off">Cancel</label>
+					</div>
+				</div>
+				<div class="popup-tab" id="signup-tab">
+					<label for="login-register" class="f-label">Email address</label>
+					<input type="text" id="login-register" name="login-register" value="" />
+
+					<label for="password-register" class="f-label">Password</label>
+					<input type="password" id="password-register" name="password-register" />
+
+					<label for="password-register-two" class="f-label">Password</label>
+					<input type="password" id="password-register" name="password-register-two" />
+
+					<!--
+					<div class="flexbox">
+						<input type="checkbox" name="rememberme" id="rememberme" />
+						<label for="rememberme" class="f-label">Stay logged in on this computer</label>
+					</div>
+					-->
+
+					<div class="flexbox-r">
+						<input type="submit" value="Sign Up" class="form-button-v" />
+						
+						<label class="form-button" for="login-off">Cancel</label>
+					</div>
+				</div>
+			</div>
+
+		</section>
+
+		<section id="presentation">
+			<div id="background"></div>
+			<h1>Crypto-currencies Analyst and Hedge Fund.</h1>
+			<p>A Simple, Secure and Scalable Investment Solution.</p>
+			<p>Invest Now and Beat the Market</p>
+
+			<div id="scroll"></div>
+		</section>
+
+		<section id="underflow">
+			<section id="flow">
+				<div class="flowblock">
+					<div><span id="cap"></span><span>USD</span></div>
+					<div>Market Cap</div>
+				</div>
+				<div class="flowblock">
+					<div><span id="volume"></span><span>USD</span></div>
+					<div>Volume (24h)</div>
+				</div>
+				<div class="flowblock">
+					<div><span id="supply"></span><span>BTC</span></div>
+					<div>Calculating Supply</div>
+				</div>
+				<div class="flowblock">
+					<div><span>21,000,000</span><span>BTC</span></div>
+					<div>Max supply</div>
+				</div>
+			</section>
+
+			<section id="prices">
+				<div class="holder">
+					<div id="chart-elements">
+						<div id="chart-settings">
+							<div data-span="d">Day</div>
+							<div data-span="w">Week</div>
+							<div data-span="m" class="selected">Month</div>
+							<div data-span="q">Quarter</div>
+							<div data-span="y">Year</div>
+							<div data-span="a">All time</div>
+						</div>
+						<div id="chart-container">
+							<canvas id="chart"></canvas>
+						</div>
+					</div>
+					<div id="values">
+
+						<div id="equi">
+							<div id="currentValue"></div>
+							<div id="double-arrows">⇌</div>
+							<div id="money">1 BTC</div>
+						</div>
+						<div id="variations">
+							<div id="hourvariation"></div>
+							<div id="dayvariation"></div>
+							<div id="weekvariation"></div>
+						</div>
+
+						<input id="trading-check" type="radio"/>
+						<label id="trading" for="trading-check">
+							<div class="trade-list">
+								<div class="trade-currency">
+									<div class="c-currency">BTC</div>
+									<div class="v-currency" id="btc-value"></div>
+								</div>
+								<input class="trade-amount" value="0.10" />
+							</div>
+							<div id="arrow-list">⇵</div>
+							<div class="trade-list">
+								<div class="trade-currency">
+									<div class="c-currency">ETH</div>
+									<div class="v-currency" id="eth-value"></div>
+								</div>
+								<input class="trade-amount" value="4500" />
+							</div>
+
+							<div id="trade-button">Exchange</div>
+
+							<div id="trade-foreground"><span>Login to trade currencies</span></div>
+						</label>
+						
+					</div>
+				</div>
+			</section>
+		</section>
+
+		<section id="services">
+			<div class="holder">
+				<div>
+					<h1>Beat the Market, minimize the risks</h1>
+					<p>Our primary goal is to invest by limiting risks at the same time. We apply a rigorous checklist approach to evaluate securities in any asset class while analysing and interpreting fundamental data, macro-economic data, and sentiment indicators.<br /><br />We have professional traders and quantitative analysts working on evaluating the variations of crypto-currencies on different time frames.<br /><br />Have confidence in our projections and we guarantee a positive return on investment ranging between 3% and 20% per year.</p>
+
+					<i>All your funds are protected by only the very best of security norms and we have an insurance covering individual loss from $200,000 up to $20,000,000 for companies in case of market crash.</i>
+				</div>
+				<div>
+					<img src="assets/images/imac.png" />
+				</div>
+			</div>
+
+			<div class="holder">
+				<div>
+					<img src="assets/images/iphone.png" width="300"/>
+				</div>
+				<div>
+					<h1>Smart money, smart wallet</h1>
+					<p>The ASKA Wallet is a gateway to decentralized crypto-currencies. It comes with a cross-platform investment software and allows you to hold, secure and invest crypto-currencies and other assets.<br /><br />Start investing today and either manage your wallet or let us take care of everything.</p>
+					<div class="button">Suscribe</div>
+
+					<i>Available on Windows, MacOS, Linux/Unix, Android, iOS (iPhone), Windows Phone</i>
+				</div>
+			</div>
+			
+			<div class="subholder">
+				<h1>Trusted by the best</h1>
+				<div>
+					<img src="assets/images/s_bi.png" />
+					<img src="assets/images/s_ya.png" />
+					<img src="assets/images/s_na.png" />
+					<img src="assets/images/s_ms.png" />
+					<img src="assets/images/s_mw.png" />
+				</div>
+			</div>
+		</section>
+
+		<section id="prices-grid">
+			<h1>Marvelous Prices for Amazing Investments Plan</h1>
+			<div id="prices-container">
+				<div class="price-target">
+					<h2>Standard</h2>
+					<div class="separator"></div>
+					<p>If you are new to crypto-currencies</p>
+					<h3>$199</h3>
+					<h4>per month</h4>
+					<ul>
+						<li>Access to all resources</li>
+						<li>1/7 days projections</li>
+					</ul>
+					<div class="price-button" id="subscribe-one">subscribe</div>
+				</div>
+				<div class="price-target price-important">
+					<h2>Premium</h2>
+					<div class="separator"></div>
+					<p>The Best & Most Popular offer</p>
+					<h3>$499</h3>
+					<h4>per month</h4>
+					<ul>
+						<li>24/7 support in 12 languages</li>
+						<li>Insurance of <b>$200,000</b> of assets</li>
+						<li>Full access to website and applications</li>
+						<li>Personnal Asset Manager assigned</li>
+						<li>1/7/31 days projections</li>
+						
+					</ul>
+					<div class="price-button" id="subscribe-two">subscribe</div>
+				</div>
+				<div class="price-target">
+					<h2>Ultimate</h2>
+					<div class="separator"></div>
+					<p>For Companies or substantial assets managment</p>
+
+					<h3>$899</h3>
+					<h4>per month (starting from)</h4>
+					<ul>
+						<li>All services included</li>
+						<li><i>sur mesure</i> investment plan</li>
+					</ul>
+					<a href="#contact" class="price-button">ask a quotation</a>
+				</div>
+			</div>
+		</section>
+
+		<section id="about">
+			<section id="aboutus">
+				<h1>Some informations about us</h1>
+				<p>Founded in January 2015 ASKA Investments is an analyst and hedge fund that specializes in the crypto-currencies market.<br />Since its creation it has grown from 3 to 28 employees based in 12 countries.</p>
+				<div id="team">
+					<div>
+						<img src="assets/images/f_simon_bret.jpg" />
+						<span>Simon BRET, <i>Founder, CEO</i></span>
+					</div>
+					<div>
+						<img src="assets/images/f_yun_yee.jpg" />
+						<span>Yun YEE, <i>Founder, HR Manager</i></span>
+					</div>
+					<div>
+						<img src="assets/images/f_jason_bruke.jpg" />
+						<span>Jason BRUKE, <i>Quantitative Analyst</i></span>
+					</div>
+				</div>
+			</section>
+		</section>
+
+		
+
+		<section id="contact">
+			<section id="subcontact">
+				<h1>Send us a message and we will get back to you in no time</h1>
+				<div id="contact-list">
+					<form id="contactform" method="POST">
+						<label>Name</label><input type="text" name="name" id="name" placeholder="Name" />
+						<label>Email</label><input type="text" name="email" id="email" placeholder="Email" />
+						<label>Subject</label><input type="text" name="subject" id="subject" placeholder="Subject" />
+						<textarea placeholder="Message"></textarea>
+						<input type="submit" value="Send Message" id="send" name="send" class="button" />
+					</form>
+					<div id="contact-method">
+						<h2>Not yet a customer?</h2>
+						<p>Send us an email, give us a phone call, send us a SMS or a message through the site and we will call you back in less than a day.</p>
+						<h2>Already customer?</h2>
+						<p>Contact us any way you like and we will get back to you under an hour. You can use the phone number indicated at the top of your profile page.</p>
+					</div>
+				</div>
+
+			</section>
+
+		</section>
+
+		<section id="map"></section>
+
+
+		<footer>
+			<section id="subfooter">ASKA - a Crypto-currencies Analyst and Hedge Fund<br />Copyright 2018 Aska Finance L.P. All rights reserved.</section>
+			<section id="coin-values"></section>
+		</footer>
+	</body>
+</html>
